@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>園地登録・日照量管理 | 浜松エリア</title>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 15px; background: #f4f7f6; }
+    .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    h1 { font-size: 1.4rem; color: #2c3e50; margin-top: 0; }
+    #map { height: 350px; width: 100%; border-radius: 6px; margin-bottom: 15px; }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.9rem; }
+    input, textarea, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    .coords { display: flex; gap: 10px; }
+    button { background: #27ae60; color: #fff; border: none; padding: 10px 20px; font-size: 1rem; border-radius: 4px; cursor: pointer; width: 100%; }
+    button:hover { background: #219150; }
+    #result { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
+    .success { background: #e8f8f5; color: #27ae60; border: 1px solid #a3e4d7; }
+    .error { background: #fde8e8; color: #e74c3c; border: 1px solid #f5b7b1; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🌱 園地（畑）の新規登録</h1>
+  <p style="font-size: 0.85rem; color: #666;">地図上のピンをドラッグして、該当する園地の位置に移動させてください。</p>
+
+  <!-- 地図表示エリア -->
+  <div id="map"></div>
+
+  <!-- 登録フォーム -->
+  <form id="fieldForm">
+    <div class="form-group coords">
+      <div style="flex: 1;">
+        <label>緯度 (Latitude)</label>
+        <input type="text" id="latitude" readonly required>
+      </div>
+      <div style="flex: 1;">
+        <label>経度 (Longitude)</label>
+        <input type="text" id="longitude" readonly required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>生産者名 / 農園名</label>
+      <input type="text" id="farmerName" placeholder="例: 山田農園" required>
+    </div>
+
+    <div class="form-group">
+      <label>園地（畑）の名称</label>
+      <input type="text" id="fieldName" placeholder="例: 三ヶ日町 平野園地" required>
+    </div>
+
+    <div class="form-group">
+      <label>作物の種類</label>
+      <select id="cropType">
+        <option value="みかん">みかん</option>
+        <option value="イチゴ">イチゴ</option>
+        <option value="メロン">メロン</option>
+        <option value="トマト">トマト</option>
+        <option value="お茶">お茶</option>
+        <option value="その他">その他</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>農家さんからのメッセージ（紹介文）</label>
+      <textarea id="description" rows="3" placeholder="例: 浜名湖の風と太陽をたっぷり浴びて育った自慢の畑です！"></textarea>
+    </div>
+
+    <button type="submit" id="submitBtn">この位置で園地を登録する</button>
+  </form>
+
+  <div id="result"></div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // GASのWebアプリURL（ご自身のURLに差し替えてください）
+  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwVzy7kWfu7O0WrYcFTp_vUGjVj41xnS9ah3SH9U0l2K49X0oXG7M6cF-70MLnRh5W9/exec';
+
+  // 浜松市中心部の初期座標
+  const defaultLat = 34.7952;
+  const defaultLng = 137.5514;
+
+  // 地図の初期化
+  const map = L.map('map').setView([defaultLat, defaultLng], 11);
+
+  // OpenStreetMapのタイルレイヤー読み込み
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  // ドラッグ可能なピンの設置
+  const marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+
+  // フォーム初期値のセット
+  document.getElementById('latitude').value = defaultLat;
+  document.getElementById('longitude').value = defaultLng;
+
+  // ピン移動時の緯度経度更新
+  marker.on('dragend', function (e) {
+    const coord = e.target.getLatLng();
+    document.getElementById('latitude').value = coord.lat.toFixed(6);
+    document.getElementById('longitude').value = coord.lng.toFixed(6);
+  });
+
+  // フォーム送信処理（GASへデータ保存）
+  document.getElementById('fieldForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const submitBtn = document.getElementById('submitBtn');
+    const resultDiv = document.getElementById('result');
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = '保存中...';
+    resultDiv.style.display = 'none';
+
+    const payload = {
+      action: 'registerField',
+      farmer_name: document.getElementById('farmerName').value,
+      field_name: document.getElementById('fieldName').value,
+      crop_type: document.getElementById('cropType').value,
+      latitude: parseFloat(document.getElementById('latitude').value),
+      longitude: parseFloat(document.getElementById('longitude').value),
+      description: document.getElementById('description').value
+    };
+
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'Content-Type': 'text/plain' }, // GASの仕様上text/plainで送信
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'この位置で園地を登録する';
+      resultDiv.style.display = 'block';
+
+      if (data.status === 'success') {
+        resultDiv.className = 'success';
+        resultDiv.innerHTML = `<strong>登録完了！</strong><br>発行されたField_ID: <code>${data.field_id}</code><br>スプレッドシートにデータが追加されました。`;
+      } else {
+        resultDiv.className = 'error';
+        resultDiv.textContent = 'エラーが発生しました: ' + data.message;
+      }
+    })
+    .catch(err => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'この位置で園地を登録する';
+      resultDiv.style.display = 'block';
+      resultDiv.className = 'error';
+      resultDiv.textContent = '通信エラーが発生しました: ' + err;
+    });
+  });
+</script>
+
+</body>
+</html>
