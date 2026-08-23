@@ -4,79 +4,111 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>日照量証明カード | 浜松サンシャイン農産物</title>
+
+  <!-- PWA設定 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ff7e5f">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<!-- Chart.js（Chart.js v4 安定版） -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background: #faf8f5; color: #333; }
-    .card { max-width: 500px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-    .header { background: linear-gradient(135deg, #ff7e5f, #feb47b); padding: 30px 20px; text-align: center; color: #fff; }
-    .badge { background: #fff; color: #e65100; font-weight: bold; padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; display: inline-block; margin-bottom: 12px; }
-    .main-score { font-size: 2.2rem; font-weight: 800; margin: 5px 0; line-height: 1.2; }
-    .main-score span { font-size: 3.2rem; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-    .sub-text { font-size: 0.9rem; opacity: 0.95; }
-    .content { padding: 20px; }
-    .section-title { font-size: 1rem; font-weight: bold; color: #444; border-left: 4px solid #ff7e5f; padding-left: 8px; margin: 20px 0 10px 0; }
-    #map { height: 220px; border-radius: 12px; margin-bottom: 10px; }
-    .info-box { background: #f9f9f9; padding: 12px 15px; border-radius: 8px; font-size: 0.9rem; line-height: 1.5; color: #555; }
-    .chart-container { position: relative; height: 200px; width: 100%; margin-top: 10px; }
-    .footer { text-align: center; padding: 15px; font-size: 0.75rem; color: #aaa; background: #f4f4f4; }
-    #loading { text-align: center; padding: 50px 20px; font-size: 1.1rem; color: #888; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 12px; background: #f7f5f0; color: #2d3748; line-height: 1.5; }
+    .card { max-width: 480px; margin: 0 auto 30px auto; background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.04); }
+    
+    .header { background: linear-gradient(135deg, #ff6b4a, #ffa057); padding: 32px 20px; text-align: center; color: #fff; position: relative; }
+    .badge { background: rgba(255, 255, 255, 0.95); color: #e65100; font-weight: 800; padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; display: inline-block; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); letter-spacing: 0.5px; }
+    .main-score { font-size: 1.8rem; font-weight: 800; margin: 5px 0; line-height: 1.25; }
+    .main-score span.percent { font-size: 3.4rem; color: #fff; text-shadow: 0 3px 6px rgba(0,0,0,0.2); font-weight: 900; }
+    .sub-text { font-size: 0.95rem; opacity: 0.95; margin-top: 8px; font-weight: 600; }
+    
+    .content { padding: 22px 18px; }
+    .section-title { font-size: 0.95rem; font-weight: 800; color: #4a5568; border-left: 4px solid #ff6b4a; padding-left: 10px; margin: 22px 0 12px 0; letter-spacing: 0.5px; display: flex; align-items: center; }
+    #map { height: 210px; border-radius: 14px; margin-bottom: 10px; box-shadow: inset 0 0 5px rgba(0,0,0,0.1); }
+    
+    .info-box { background: #faf8f5; padding: 14px 16px; border-radius: 12px; font-size: 0.88rem; color: #4a5568; border: 1px solid #f0eae1; }
+    .chart-container { position: relative; height: 210px; width: 100%; margin-top: 8px; }
+    
+    /* SNS共有エリア */
+    .share-section { margin-top: 25px; padding-top: 18px; border-top: 1px dashed #e2e8f0; text-align: center; }
+    .share-title { font-size: 0.85rem; font-weight: bold; color: #718096; margin-bottom: 12px; }
+    .share-buttons { display: flex; gap: 10px; justify-content: center; }
+    .share-btn { flex: 1; padding: 10px 12px; border-radius: 10px; text-decoration: none; font-size: 0.85rem; font-weight: bold; color: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; border: none; transition: opacity 0.2s; }
+    .share-btn:active { opacity: 0.8; }
+    .btn-x { background: #000; }
+    .btn-line { background: #06c755; }
+    .btn-native { background: #ff6b4a; }
+
+    .footer { text-align: center; padding: 16px; font-size: 0.72rem; color: #a0aec0; background: #f8fafc; border-top: 1px solid #edf2f7; }
+    #loading { text-align: center; padding: 60px 20px; font-size: 1rem; color: #a0aec0; font-weight: bold; }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <div id="loading">☀️ 日照量データを読み込み中...</div>
+  <div id="loading">☀️ 太陽光観測データを取得中...</div>
 
   <div id="app" style="display: none;">
-    <!-- 1. メインコピー（最上部バッジ） -->
+    <!-- 1. メインヘッダー -->
     <div class="header">
-      <div class="badge">☀️ JAXA衛星データ証明</div>
-      <div class="main-score">全国平均より<br><span>+<span id="diffPercent">0</span>%</span><br>太陽を浴びました！</div>
-      <div class="sub-text"><span id="cropName">みかん</span> / <span id="fieldName">園地名</span></div>
+      <div class="badge">☀️ 太陽光データ証明書</div>
+      <div class="main-score">全国平均より<br><span class="percent">+<span id="diffPercent">0</span>%</span><br>太陽を浴びました！</div>
+      <div class="sub-text">［<span id="cropName">みかん</span>］ <span id="fieldName">園地名</span></div>
     </div>
 
     <div class="content">
-      <!-- 2. 地図 & ヒートマップ風タイルの重ね合わせ -->
-      <div class="section-title">📍 園地の場所と浜松の日当たり環境</div>
+      <!-- 2. 地図 -->
+      <div class="section-title">📍 園地の場所と浜松の環境</div>
       <div id="map"></div>
       <div class="info-box">
-        浜松エリアは全国トップクラスの日照量を誇ります。浜名湖からの湖面反射光や南向きの傾斜地が、濃厚な甘みを育みます。
+        浜松エリアは全国トップクラスの日照量を誇ります。強い直射光と日射環境が、農産物のコクと甘みを最大限に引き出します。
       </div>
 
-      <!-- 3. 月別日射量の比較グラフ -->
-      <div class="section-title">📊 月別日射量の推移（vs 全国平均）</div>
+      <!-- 3. 月別グラフ -->
+      <div class="section-title">📊 2024年 月別日射量推移 (vs 全国平均)</div>
       <div class="chart-container">
         <canvas id="solarChart"></canvas>
       </div>
 
-      <!-- 4. 生産者・メッセージ -->
-      <div class="section-title">👨‍🌾 生産者情報</div>
+      <!-- 4. 生産者情報 -->
+      <div class="section-title">👨‍🌾 生産者・園地情報</div>
       <div class="info-box">
-        <strong id="farmerName">農家名</strong><br>
-        <span id="description">メッセージがここに入ります。</span>
+        <strong id="farmerName" style="font-size: 1rem; color: #2d3748;">農家名</strong><br>
+        <span id="description" style="margin-top: 4px; display: block;">メッセージが入ります。</span>
+      </div>
+
+      <!-- 5. SNSシェア機能 -->
+      <div class="share-section">
+        <div class="share-title">＼ 太陽の恵みをSNSでシェア ／</div>
+        <div class="share-buttons">
+          <button class="share-btn btn-x" onclick="shareX()">Xでポスト</button>
+          <button class="share-btn btn-line" onclick="shareLINE()">LINE</button>
+          <button class="share-btn btn-native" onclick="shareNative()">共有</button>
+        </div>
       </div>
     </div>
 
     <div class="footer">
-      データ提供: JAXA Satellite Data Platform / 浜松アグリバイオプロジェクト
+      データ出典: Open-Meteo Historical Weather API<br>
+      浜松サンシャイン農産物プロジェクト
     </div>
   </div>
 </div>
 
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
-  // GASのWebアプリURL（ご自身のURLに差し替えてください）
   const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwVzy7kWfu7O0WrYcFTp_vUGjVj41xnS9ah3SH9U0l2K49X0oXG7M6cF-70MLnRh5W9/exec';
 
-  // URLパラメータからfield_idを取得（指定がない場合は初期データ）
   const urlParams = new URLSearchParams(window.location.search);
   const fieldId = urlParams.get('field_id') || 'field_mikkabi_01';
+  let shareData = {};
 
-  // データ取得
   fetch(`${GAS_WEB_APP_URL}?action=getField&field_id=${fieldId}`)
     .then(res => res.json())
     .then(resData => {
@@ -86,9 +118,16 @@
       }
 
       const field = resData.data.field;
-      const solar = resData.data.solar || { diff_percent: 16.1, monthly_data: [2.8, 3.2, 3.9, 4.5, 4.8, 4.2, 5.1, 5.0, 4.1, 3.6, 3.0, 2.7] };
+      const solar = resData.data.solar;
 
-      // テキスト反映
+      shareData = {
+        farmerName: field.farmer_name,
+        fieldName: field.field_name,
+        cropName: field.crop_type,
+        diffPercent: solar.diff_percent,
+        url: window.location.href
+      };
+
       document.getElementById('diffPercent').textContent = solar.diff_percent;
       document.getElementById('cropName').textContent = field.crop_type;
       document.getElementById('fieldName').textContent = field.field_name;
@@ -98,40 +137,30 @@
       document.getElementById('loading').style.display = 'none';
       document.getElementById('app').style.display = 'block';
 
-      // 1. 地図・ヒートマップタイルの表示
       initMap(field.latitude, field.longitude);
-
-      // 2. 折れ線グラフの表示
       initChart(solar.monthly_data);
     });
 
-  // 地図 ＆ 日照ヒートマップ重ね合わせ関数
   function initMap(lat, lng) {
     const map = L.map('map', { zoomControl: false }).setView([lat, lng], 12);
 
-    // ベースの標準地図
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap'
     }).addTo(map);
 
-    // ★日照量ヒートマップ風のカラータイルの重ね合わせ（オレンジ半透明の円で可視化）
-    const heatGrid = L.circle([lat, lng], {
-      color: '#ff5722',
-      fillColor: '#ff9800',
+    L.circle([lat, lng], {
+      color: '#ff6b4a',
+      fillColor: '#ffa057',
       fillOpacity: 0.35,
-      radius: 1800 // 1.8kmの範囲を日照エリアとして可視化
+      radius: 2000
     }).addTo(map);
 
-    // 該当園地のピン
     L.marker([lat, lng]).addTo(map)
-      .bindPopup('<b>この園地です！</b>').openPopup();
+      .bindPopup(`<b>${shareData.farmerName}</b><br>${shareData.fieldName}`).openPopup();
   }
 
-  // 折れ線グラフ描画関数
   function initChart(monthlyData) {
     const ctx = document.getElementById('solarChart').getContext('2d');
-    
-    // 全国平均のダミー月別数値
     const nationalAvgMonthly = [2.4, 2.8, 3.4, 3.9, 4.2, 3.7, 4.3, 4.4, 3.5, 3.1, 2.6, 2.3];
 
     new Chart(ctx, {
@@ -142,20 +171,22 @@
           {
             label: 'この園地 (kWh/㎡)',
             data: monthlyData,
-            borderColor: '#ff7e5f',
-            backgroundColor: 'rgba(255, 126, 95, 0.2)',
+            borderColor: '#ff6b4a',
+            backgroundColor: 'rgba(255, 107, 74, 0.15)',
             fill: true,
-            tension: 0.3,
-            borderWidth: 3
+            tension: 0.35,
+            borderWidth: 3,
+            pointRadius: 2
           },
           {
             label: '全国平均',
             data: nationalAvgMonthly,
-            borderColor: '#aaa',
-            borderDash: [5, 5],
+            borderColor: '#a0aec0',
+            borderDash: [4, 4],
             fill: false,
-            tension: 0.3,
-            borderWidth: 2
+            tension: 0.35,
+            borderWidth: 2,
+            pointRadius: 0
           }
         ]
       },
@@ -163,14 +194,42 @@
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+          legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
         },
         scales: {
-          y: { beginAtZero: false, grid: { color: '#eee' } },
+          y: { beginAtZero: false, grid: { color: '#edf2f7' } },
           x: { grid: { display: false } }
         }
       }
     });
+  }
+
+  // SNS共有機能
+  function shareX() {
+    const text = `【太陽光データ証明】${shareData.farmerName}の${shareData.cropName}は、全国平均より＋${shareData.diffPercent}%太陽の光を浴びて育ちました！☀️ #浜松サンシャイン農産物 #JAXAデータ証明\n`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareData.url)}`, '_blank');
+  }
+
+  function shareLINE() {
+    const text = `【太陽光データ証明】${shareData.farmerName}の${shareData.cropName}は全国平均より＋${shareData.diffPercent}%太陽を浴びて育ちました！☀️\n${shareData.url}`;
+    window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, '_blank');
+  }
+
+  function shareNative() {
+    if (navigator.share) {
+      navigator.share({
+        title: '日照量証明カード',
+        text: `${shareData.farmerName}の${shareData.cropName}（全国平均比 ＋${shareData.diffPercent}%）`,
+        url: shareData.url
+      });
+    } else {
+      shareX();
+    }
+  }
+
+  // PWA Service Worker 登録
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW reg error:', err));
   }
 </script>
 
