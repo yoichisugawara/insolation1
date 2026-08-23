@@ -1,0 +1,20 @@
+{
+  "name": "浜松サンシャイン農産物 証明カード",
+  "short_name": "サンシャイン証明",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f7f5f0",
+  "theme_color": "#ff7e5f",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/869/869869.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/869/869869.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
